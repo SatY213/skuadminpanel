@@ -396,31 +396,22 @@ exports.generateReturnedProductsHistogram = async (req, res) => {
   }
 };
 
-exports.calculateTotalNotSoldProducts = async (req, res) => {
+exports.calculateTotalQuantity = async (categoryId = null) => {
   try {
-    const { category } = req.params;
+    const filter = categoryId ? { category: categoryId } : {}; // Optional filter by category
+    console.log(filter);
+    const products = await Product.find(filter);
+    console.log(products);
 
-    const query = {};
+    // Calculate the total quantity of products
+    const totalQuantity = products.reduce(
+      (acc, product) => acc + product.quantity,
+      0
+    );
 
-    if (category) {
-      query.category = category;
-    }
-
-    const totalCount = await Product.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          totalCount: { $sum: "$quantity" }, // Calculate total not sold products based on quantity
-        },
-      },
-    ]);
-
-    res.json({
-      totalCount: totalCount.length > 0 ? totalCount[0].totalCount : 0,
-    });
+    return totalQuantity;
   } catch (error) {
-    res.status(500).json({ error: "An error occurred" });
+    throw new Error("Error calculating total quantity: " + error.message);
   }
 };
 

@@ -30,7 +30,7 @@ app.use(express.json());
 // Enable CORS with specific options
 app.use(
   cors({
-    // origin: "http://localhost:8083", // Replace with your allowed origin
+    // origin: "http://localhost:5174", // Replace with your allowed origin
     // methods: ["GET", "POST", "PUT", "DELETE"], // Specify the allowed HTTP methods
     allowedHeaders: ["Content-Type", "x-auth-token"], // Specify the allowed headers
     credentials: true, // Enable sending cookies with CORS requests
@@ -50,7 +50,7 @@ app.get("*", (req, res) => {
 });
 
 // On spécifie le port du server et on instancie l'application
-const port = 8083;
+const port = 8000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

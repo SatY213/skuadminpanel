@@ -30,12 +30,22 @@ router.get(
   productController.generateReturnedProductsHistogram
 );
 
-router.get(
-  "/stock",
-  authenticate,
-  productController.calculateTotalNotSoldProducts
-);
+router.get("/stock", authenticate, async (req, res) => {
+  try {
+    // You can optionally pass a categoryId as a query parameter
+    const categoryId = req.query.categoryId;
+    console.log(categoryId);
 
+    // Calculate the total quantity based on the category (categoryId)
+    const totalQuantity = await productController.calculateTotalQuantity(
+      categoryId
+    );
+
+    res.json({ totalQuantity });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 // Create a new product
 router.post(
   "/products",
