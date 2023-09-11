@@ -396,12 +396,15 @@ exports.generateReturnedProductsHistogram = async (req, res) => {
   }
 };
 
-exports.calculateTotalQuantity = async (categoryId = null) => {
+exports.calculateTotalQuantity = async (req, res) => {
   try {
-    const filter = categoryId ? { category: categoryId } : {}; // Optional filter by category
-    console.log(filter);
-    const products = await Product.find(filter);
-    console.log(products);
+    const categoryFilter =
+      req.query.category && req.query.category.trim() !== ""
+        ? { category: req.query.category }
+        : {};
+
+    // Find products with the optional category filter
+    const products = await Product.find(categoryFilter);
 
     // Calculate the total quantity of products
     const totalQuantity = products.reduce(
@@ -409,9 +412,11 @@ exports.calculateTotalQuantity = async (categoryId = null) => {
       0
     );
 
-    return totalQuantity;
+    // Send the total quantity as a JSON response
+    res.status(200).json({ totalQuantity });
   } catch (error) {
-    throw new Error("Error calculating total quantity: " + error.message);
+    console.error("Error calculating total quantity:", error);
+    res.status(500).json({ error: "Error calculating total quantity" });
   }
 };
 
