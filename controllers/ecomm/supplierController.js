@@ -26,7 +26,7 @@ exports.updateSupplier = async (req, res) => {
     if (!updatedSupplier) {
       return res.status(404).json({ error: "Supplier not found." });
     }
-    res.json(updatedSupplier);
+    res.json({ success: "Supplier updated successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to update the supplier." });
   }
@@ -40,7 +40,7 @@ exports.deleteSupplier = async (req, res) => {
     if (!deletedSupplier) {
       return res.status(404).json({ error: "Supplier not found." });
     }
-    res.json({ message: "Supplier deleted successfully." });
+    res.json({ error: "Supplier deleted successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete the supplier." });
   }
