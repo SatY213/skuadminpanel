@@ -3,12 +3,16 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
+const bodyParser = require("body-parser");
 
 require("dotenv").config();
 
 // On instanciie l'objet express
 
 const app = express();
+app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 // On connect a la base de données NoSql MongoDb
 mongoose
@@ -26,7 +30,7 @@ mongoose
 
 // Middleware
 app.use(express.json());
-
+app.use(express.urlencoded({ extended: true }));
 // Enable CORS with specific options
 app.use(
   cors({
@@ -43,11 +47,11 @@ const authRouter = require("./routes/web");
 app.use("/api", authRouter);
 // Serve static files
 app.use("/uploads", express.static("uploads"));
-//TEST
-app.use(express.static(path.join(__dirname, "client")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "index.html"));
-});
+
+// app.use(express.static(path.join(__dirname, "client")));
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "client", "index.html"));
+// });
 
 // On spécifie le port du server et on instancie l'application
 const port = 8000;

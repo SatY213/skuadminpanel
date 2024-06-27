@@ -3,12 +3,12 @@ require("dotenv").config();
 const BlacklistedToken = require("../models/BlacklistedToken");
 
 const authenticate = async (req, res, next) => {
-  // On prends le tooken du header "x-auth-token"
+  // On prends le token du header "x-auth-token"
   const token = req.header("x-auth-token");
 
-  // On vérifie si le token exists
+  // On vérifie si le token existe
   if (!token) {
-    return res.status(401).json({ msg: "No token , authorization denied" });
+    return res.status(401).json({ msg: "No token, authorization denied" });
   }
 
   try {
@@ -19,13 +19,15 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // On le verifie avec jwt.token
+    // On le vérifie avec jwt.verify
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // On attach l'objet user a la requete
+    // On attache l'objet user à la requête
     req.user = decoded.user;
+    req.shop_ref = decoded.shop_ref;
+    req.role = decoded.role;
 
-    // pour avancer a la prochaine route
+    // Pour avancer à la prochaine route
     next();
   } catch (err) {
     res.status(401).json({ msg: "Token is not valid" });

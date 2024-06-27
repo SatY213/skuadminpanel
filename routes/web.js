@@ -1,232 +1,300 @@
 const express = require("express");
-const { check, body } = require("express-validator");
 const router = express.Router();
 const authController = require("../controllers/authController");
-const productController = require("../controllers/ecomm/productController");
-const supplierController = require("../controllers/ecomm/supplierController");
-const clientController = require("../controllers/ecomm/clientController");
-const categoryController = require("../controllers/ecomm/categoryController");
-const bannerController = require("../controllers/ecomm/publicity/bannerController");
+const userController = require("../controllers/userController");
+const collectionController = require("../controllers/collectionController");
+const supplierController = require("../controllers/supplierController");
+const cartController = require("../controllers/cartController");
+const productController = require("../controllers/productController");
+const orderController = require("../controllers/orderController");
 
-const authenticate = require("../middleware/authMiddleware");
+const shopController = require("../controllers/shopController");
+
 const upload = require("../middleware/fileMiddleware");
 
-// PRODUCT ROUTES-------------------------------------------
-// authenticate,upload.single('file'),
+const authenticate = require("../middleware/authMiddleware");
 
-router.get(
-  "/totalSold",
+/////////////////////// VALIDATION IMPORTS ///////////////////////////
+const { check, body } = require("express-validator");
+const validations = require("../validations/validation");
+
+const roleMiddleware = require("../middleware/roleMiddleware");
+////////////////////// VALIDATION IMPORTS - END /////////////////////
+router.post(
+  "/cart/place-order",
   authenticate,
-  productController.generateTotalSoldHistogram
-);
-router.get(
-  "/totalGain",
-  authenticate,
-  productController.generateTotalGainHistogram
-);
-router.get(
-  "/totalReturned",
-  authenticate,
-  productController.generateReturnedProductsHistogram
+  upload.single("picture"),
+  cartController.placeOrder
 );
 
-router.get("/stock", authenticate, productController.calculateTotalQuantity);
-// Create a new product
+router.get("/cart/shop/:id", authenticate, cartController.findLastCart);
+router.patch(
+  "/carts/:id",
+  authenticate,
+  upload.single("picture"),
+  cartController.updateCart
+);
+
+/**/ router.post("/auth/logout", authenticate, authController.logout);
+/**/ router.post(
+  "/auth/registerCommercant",
+  validations.registerValidation,
+  authController.registerCommercant
+);
+/**/ router.post(
+  "/auth/registerClient",
+  validations.registerValidation,
+  authController.registerClient
+);
+/**/ router.post(
+  "/auth/loginClient",
+  validations.loginValidation,
+  authController.loginClient
+);
+/**/ router.post(
+  "/auth/login",
+  validations.loginValidation,
+  authController.login
+);
+/**/ router.get(
+  "/refresh",
+  authenticate,
+  upload.single("picture"),
+  authController.tokenRefresh
+);
+
+// AUTH ROUTES-------------------------------------------FIN
+//////////////////////////////////////////////
+
 router.post(
   "/products",
   authenticate,
-  upload.array("pictures", 4),
+
+  upload.single("picture"),
   productController.createProduct
 );
-
-// Update a product by ID
-router.put(
-  "/products/:id",
+router.get(
+  "/products/shop",
   authenticate,
-  upload.array("pictures", 4),
+  roleMiddleware("Commercant"),
+  productController.findAllShopProducts
+);
+router.patch(
+  "/products/shop/:id",
+  authenticate,
+
+  upload.single("picture"),
   productController.updateProduct
 );
+router.get(
+  "/product-reduced/:id",
 
-// Delete a product by ID
-router.delete("/products/:id", authenticate, productController.deleteProduct);
+  productController.findProductByIdReduced
+);
 
-// Find a product by ID
+router.delete(
+  "/products/:id",
+  authenticate,
+  roleMiddleware("Commercant"),
+  productController.deleteProduct
+);
+
 router.get("/products/:id", authenticate, productController.findProductById);
+router.get("/products/user");
+router.get("/products/shop/:id", productController.findAllViewProducts);
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
+router.patch(
+  "/orders/cancel/:id",
+  authenticate,
+  upload.single("picture"),
+  orderController.cancelOrder
+);
+router.get("/orders/user", authenticate, orderController.findAllUserOrders);
 
 router.get(
-  "/productsbyclient/:clientId",
+  "/orders/shop",
   authenticate,
-  productController.findProductsByClient
+  roleMiddleware("Commercant"),
+  orderController.findAllShopOrders
 );
-
-// Find a product by Barcode
 router.get(
-  "/productsbybarcode/:barcode",
+  "/orders/:id",
   authenticate,
-  productController.searchProductByBarcode
+  roleMiddleware("Commercant"),
+  orderController.findOrderById
 );
 
-// Find all products with pagination and search
-router.get("/products", authenticate, productController.findAllProducts);
-// PRODUCT ROUTES-------------------------------------------FIN
+router.delete(
+  "/orders/:id",
+  authenticate,
+  roleMiddleware("Commercant"),
+  orderController.deleteOrder
+);
+router.patch(
+  "/orders/:id",
+  authenticate,
+  roleMiddleware("Commercant"),
+  upload.single("picture"),
+
+  orderController.updateOrder
+);
+//////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////
 
 router.post(
-  "/banners",
-  upload.array("pictures", 4),
-  bannerController.createBanner
-);
-
-// Update a banner by ID
-router.put("/banners/:id", bannerController.updateBanner);
-
-// Delete a banner by ID
-router.delete("/banners/:id", bannerController.deleteBanner);
-
-// Find a banner by ID
-router.get("/banners/:id", bannerController.findBannerById);
-
-// Find all banners with pagination and search
-router.get("/banners", bannerController.findAllBanners);
-// Banner ROUTES-------------------------------------------FIN
-
-// CLIENT ROUTES-------------------------------------------
-
-// Create a new client
-router.post("/clients", authenticate, clientController.createClient);
-
-// Update a client by ID
-router.put("/clients/:id", authenticate, clientController.updateClient);
-
-// Delete a client by ID
-router.delete("/clients/:id", authenticate, clientController.deleteClient);
-
-// Find a client by ID
-router.get("/clients/:id", authenticate, clientController.findClientById);
-// Find a client by ID
-router.get(
-  "/clientbyphonenumber/:phonenumber",
+  "/collections",
   authenticate,
-  clientController.findClientByPhoneNumber
+  upload.single("picture"),
+  collectionController.createCollection
+);
+router.get(
+  "/collections/shop-reduced/:id",
+  collectionController.findAllShopCollectionsReduced
+);
+router.get(
+  "/collections/shop",
+  authenticate,
+  roleMiddleware("Commercant"),
+  collectionController.findAllShopCollections
+);
+router.patch(
+  "/collections/shop/:id",
+  authenticate,
+  roleMiddleware("Commercant"),
+  upload.single("picture"),
+
+  collectionController.updateCollection
+);
+router.delete(
+  "/collections/:id",
+  authenticate,
+  roleMiddleware("Commercant"),
+  collectionController.deleteCollection
+);
+router.get(
+  "/collections/:id",
+  authenticate,
+  roleMiddleware("Commercant"),
+
+  collectionController.findCollectionById
+);
+router.get(
+  "/collections/sub_collections/:id",
+  authenticate,
+  collectionController.findSubCollections
 );
 
-// Find all clients with pagination and search
-router.get("/clients", authenticate, clientController.findAllClients);
-// CLIENT ROUTES-------------------------------------------FIN
+router.get(
+  "/collections/shop/:id",
+  collectionController.findAllShopCollections
+);
 
-// SUPPLIER ROUTES-------------------------------------------
+//////////////////////////////////////
 
-// Create a new supplier
-router.post("/suppliers", authenticate, supplierController.createSupplier);
+//////////////////////////////////////////////
 
-// Update a supplier by ID
-router.put("/suppliers/:id", authenticate, supplierController.updateSupplier);
+router.post(
+  "/suppliers",
+  authenticate,
+  upload.single("picture"),
+  supplierController.createSupplier
+);
+router.get(
+  "/suppliers/shop",
+  authenticate,
+  roleMiddleware("Commercant"),
+  supplierController.findAllShopSuppliers
+);
 
-// Delete a supplier by ID
+router.patch(
+  "/suppliers/shop/:id",
+  authenticate,
+  upload.single("picture"),
+
+  supplierController.updateSupplier
+);
 router.delete(
   "/suppliers/:id",
   authenticate,
   supplierController.deleteSupplier
 );
-
-// Find a supplier by ID
 router.get("/suppliers/:id", authenticate, supplierController.findSupplierById);
 
-// Find all suppliers with pagination and search
-router.get("/suppliers", authenticate, supplierController.findAllSuppliers);
+router.get("/suppliers/user");
+//////////////////////////////////////
 
-// SUPPLIER ROUTES-------------------------------------------FIN
+//////////////////////////////////////////////
 
-// CATEGORIES ROUTES-------------------------------------------
-
-// Create a new category
-router.post("/categories", authenticate, categoryController.createCategory);
-
-// Update a category by ID
-router.put("/categories/:id", authenticate, categoryController.updateCategory);
-
-// Delete a category by ID
-router.delete(
-  "/categories/:id",
+router.post(
+  "/shops",
   authenticate,
-  categoryController.deleteCategory
+  upload.single("logo"),
+  shopController.createShop
 );
 
-// Find a category by ID
+router.patch(
+  "/shops/:id",
+  authenticate,
+  upload.fields([
+    { name: "logo", maxCount: 1 },
+    { name: "banner", maxCount: 1 },
+  ]),
+
+  shopController.updateShop
+);
+router.delete("/shops/:id", authenticate, shopController.deleteShop);
+router.get("/shops/:id", shopController.findShopById);
+
+router.get("/shops/user");
+router.get("/shops", authenticate, shopController.findAllShops);
+//////////////////////////////////////
+
+router.post(
+  "/users",
+  upload.single("picture"),
+  authenticate,
+  validations.createUser,
+  userController.createUser
+);
 router.get(
-  "/categories/:id",
+  "/users/shop",
   authenticate,
-  categoryController.findCategoryById
+  upload.single("picture"),
+  userController.findAllShopUsers
 );
-
-// Find all categories with pagination and search
-router.get("/categories", authenticate, categoryController.findAllCategories);
-
-// category ROUTES-------------------------------------------FIN
-
-// ORDER AND PROFILE ROUTES -----------------------------
-
-router.get("/profile", authenticate, authController.profile);
-
-// router.post(
-//   "/order",
-//   [
-//     body("product").notEmpty().withMessage("Product is required"),
-//     body("quantity").notEmpty().withMessage("Quantity is required"),
-//     body("phoneNumber").notEmpty().withMessage("Phone number is required"),
-//     body("firstName").notEmpty().withMessage("First name is required"),
-//     body("lastName").notEmpty().withMessage("Last name is required"),
-//     body("wilaya").notEmpty().withMessage("Wilaya is required"),
-//     body("address").notEmpty().withMessage("Address is required"),
-//   ],
-//   orderController.createOrder
-// );
-
-// ORDER AND PROFILE ROUTES -----------------------------FIN
-
-// AUTH ROUTES-------------------------------------------
-
-router.post("/auth/logout", authenticate, authController.logout);
-
-router.post(
-  "/auth/register",
-  [
-    check("username", "Username is required").not().isEmpty(),
-    check("email", "Please include a valid email").isEmail(),
-    check(
-      "password",
-      "Please enter a password with 6 or more characters"
-    ).isLength({ min: 6 }),
-  ],
-  authController.register
-);
-
-// Login
-router.post(
-  "/auth/login",
-  [
-    check("email", "Please include a valid email").isEmail(),
-    check("password", "Password is required").exists(),
-  ],
-  authController.login
-);
-
-//UpdateUser
-router.put(
-  "/auth/update",
-  [
-    check("email", "Please include a valid email").optional().isEmail(),
-    check("password", "Password must be at least 8 characters long")
-      .optional()
-      .isLength({ min: 8 })
-      .matches(/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]+$/, "i")
-      .withMessage(
-        "Password must contain at least one special character and one number"
-      ),
-  ],
+router.patch(
+  "/users/:id",
+  upload.single("picture"),
   authenticate,
-  authController.updateUser
+  validations.updateUser,
+  userController.updateUser
 );
 
-// AUTH ROUTES-------------------------------------------FIN
+router.delete(
+  "/users/:id",
+  authenticate,
+  upload.single("picture"),
+  userController.deleteUser
+);
+
+router.get(
+  "/users/:id",
+  authenticate,
+  upload.single("picture"),
+  userController.findUserById
+);
+router.get(
+  "/users",
+  authenticate,
+  upload.single("picture"),
+  userController.findAllUsers
+);
+
+//////////////////////////////////////////////
+//////////////////////////////////////////////
 
 module.exports = router;

@@ -3,8 +3,9 @@ const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const BlacklistedToken = require("../models/BlacklistedToken");
-const userProfileController = require("../controllers/userProfileController");
-// Authentication Registration Controller
+const { createCart, findLastCart } = require("./cartController");
+const Cart = require("../models/Cart");
+// Authentication Registration Controllers
 
 exports.profile = async (req, res) => {
   try {
@@ -18,27 +19,29 @@ exports.profile = async (req, res) => {
   }
 };
 
-exports.register = async (req, res) => {
-  // Validate the inputs
+exports.registerCommercant = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ error: errors.array() });
   }
 
   // Destructure the validated inputs
-  const { username, email, password } = req.body;
+  const { first_name, last_name, email, password, phone_number } = req.body;
 
   try {
     // Check if the user already exists
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ msg: "User already exists" });
+      return res.status(400).json({ error: "Utilisateur déja exist." });
     }
 
     user = new User({
-      username,
+      first_name,
+      last_name,
       email,
       password,
+      phone_number,
+      role: "Commercant",
     });
 
     // Hash the password
@@ -53,12 +56,77 @@ exports.register = async (req, res) => {
       user: {
         id: user.id,
       },
+      role: user.role,
+      shop_ref: null,
     };
 
     let data = {
       user: user.id,
     };
-    await userProfileController.createProfile(data, res); // Use await here to wait for the promise to resolve
+
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" },
+      (err, token) => {
+        if (err) throw err;
+        res.json({ token });
+      }
+    );
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Server Error");
+  }
+};
+
+exports.registerClient = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array() });
+  }
+
+  // Destructure the validated inputs
+  const { first_name, last_name, email, password, shop_ref } = req.body;
+
+  try {
+    // Check if the user already exists
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ error: "Utilisateur déja exist." });
+    }
+
+    user = new User({
+      first_name,
+      last_name,
+      email,
+      password,
+      role: "Utilisateur",
+      shop_ref,
+    });
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    // Save the user
+    await user.save();
+    const cart = new Cart({ user_ref: user._id, shop_ref: user.shop_ref });
+
+    const savedCart = await cart.save();
+    // Generate a JWT
+    const payload = {
+      user: {
+        id: user.id,
+      },
+      role: user.role,
+      shop_ref: shop_ref,
+      cart_ref: cart._id,
+    };
+
+    let data = {
+      user: user.id,
+    };
+
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -76,7 +144,7 @@ exports.register = async (req, res) => {
 
 // Authentication Controller Login
 
-exports.login = async (req, res) => {
+exports.loginClient = async (req, res) => {
   // Validate the inputs
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -84,19 +152,23 @@ exports.login = async (req, res) => {
   }
 
   // Destructure the validated inputs
-  const { email, password } = req.body;
+  const { email, password, shop_ref } = req.body;
 
   try {
     // Check if the user exists
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email, shop_ref });
     if (!user) {
-      return res.status(400).json({ msg: "Invalid credentials" });
+      return res
+        .status(400)
+        .json({ error: "les informations d'identification invalides" });
     }
 
     // Validate the password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid credentials" });
+      return res
+        .status(400)
+        .json({ error: "les informations d'identification invalides" });
     }
 
     // Generate a JWT
@@ -104,6 +176,9 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
       },
+
+      shop_ref: user.shop_ref,
+      role: user.role,
     };
 
     jwt.sign(
@@ -120,8 +195,7 @@ exports.login = async (req, res) => {
     res.status(500).send("Server Error");
   }
 };
-
-exports.updateUser = async (req, res) => {
+exports.login = async (req, res) => {
   // Validate the inputs
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -132,31 +206,41 @@ exports.updateUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find the user by ID
-    let user = await User.findById(req.user.id);
+    // Check if the user exists
+    let user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    if (!email && !password) {
       return res
         .status(400)
-        .json({ error: "Please provide at least one field to update." });
+        .json({ error: "les informations d'identification invalides" });
     }
 
-    // Update the user's email and password if provided
-    if (email) {
-      user.email = email;
-    }
-    if (password) {
-      // Hash the new password
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
+    // Validate the password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ error: "les informations d'identification invalides" });
     }
 
-    // Save the updated user
-    await user.save();
+    // Generate a JWT
+    const payload = {
+      user: {
+        id: user.id,
+      },
 
-    res.json({ message: "User settings updated successfully" });
+      shop_ref: user.shop_ref,
+      role: user.role,
+    };
+
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "7h" },
+      async (err, token) => {
+        if (err) throw err;
+        res.json({ token });
+      }
+    );
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Server Error");
@@ -176,9 +260,58 @@ exports.logout = async (req, res) => {
   try {
     // Save the blacklisted token in the database
     await blacklistedToken.save();
-    res.json({ message: "Logout successful" });
+    res.json({ message: "Déconnexion réussie." });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+};
+
+exports.tokenRefresh = async (req, res) => {
+  const token = req.header("x-auth-token");
+
+  if (!token) {
+    return res.status(401).json({ error: "Token is required" });
+  }
+
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Fetch user information
+    const user_info = await User.findOne({ _id: decoded.user.id }).select(
+      "shop_ref role"
+    );
+
+    if (!user_info) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const payload = {
+      user: {
+        id: decoded.user.id,
+      },
+      shop_ref: user_info.shop_ref,
+      role: user_info.role,
+    };
+
+    // Sign a new token with the new payload
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "7h" },
+      (err, newToken) => {
+        if (err) throw err;
+        res.json({ token: newToken });
+      }
+    );
+  } catch (error) {
+    console.error(error);
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
     res.status(500).json({ error: "Server Error" });
   }
 };
