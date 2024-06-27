@@ -5,7 +5,7 @@ exports.createClient = async (req, res) => {
   try {
     const client = new Client(req.body);
     const savedClient = await client.save();
-    res.status(201).json(savedClient);
+    res.status(201).json({ success: "Client created successfully." });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Failed to create the client." });
@@ -22,7 +22,7 @@ exports.updateClient = async (req, res) => {
     if (!updatedClient) {
       return res.status(404).json({ error: "Client not found." });
     }
-    res.json(updatedClient);
+    res.json({ success: "Client updated successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to update the client." });
   }
@@ -36,7 +36,7 @@ exports.deleteClient = async (req, res) => {
     if (!deletedClient) {
       return res.status(404).json({ error: "Client not found." });
     }
-    res.json({ message: "Client deleted successfully." });
+    res.json({ success: "Client deleted successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete the client." });
   }

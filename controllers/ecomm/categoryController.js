@@ -5,7 +5,7 @@ exports.createCategory = async (req, res) => {
   try {
     const category = new Category(req.body);
     const savedCategory = await category.save();
-    res.status(201).json(savedCategory);
+    res.status(201).json({ success: "Category created successfully." });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Failed to create the category." });
@@ -26,7 +26,7 @@ exports.updateCategory = async (req, res) => {
     if (!updatedCategory) {
       return res.status(404).json({ error: "Category not found." });
     }
-    res.json(updatedCategory);
+    res.json({ success: "Category updated successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to update the category." });
   }
@@ -40,7 +40,7 @@ exports.deleteCategory = async (req, res) => {
     if (!deletedCategory) {
       return res.status(404).json({ error: "Category not found." });
     }
-    res.json({ message: "Category deleted successfully." });
+    res.json({ success: "Category deleted successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete the category." });
   }
