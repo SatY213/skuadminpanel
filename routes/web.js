@@ -15,7 +15,7 @@ const authenticate = require("../middleware/authMiddleware");
 
 /////////////////////// VALIDATION IMPORTS ///////////////////////////
 const { check, body } = require("express-validator");
-const validations = require("/home/ubuntu/skuadminpanel/validations/validation");
+const validations = require("../validations/validation");
 
 const roleMiddleware = require("../middleware/roleMiddleware");
 ////////////////////// VALIDATION IMPORTS - END /////////////////////
