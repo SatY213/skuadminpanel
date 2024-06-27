@@ -43,7 +43,7 @@ const authRouter = require("./routes/web");
 app.use("/api", authRouter);
 // Serve static files
 app.use("/uploads", express.static("uploads"));
-
+//TEST
 app.use(express.static(path.join(__dirname, "client")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
