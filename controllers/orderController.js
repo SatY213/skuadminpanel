@@ -59,20 +59,17 @@ exports.updateOrder = async (req, res) => {
 
 exports.cancelOrder = async (req, res) => {
   try {
-    const productId = req.params.id;
+    const orderId = req.params.id;
     if (req.file) {
       console.log("File uploaded:", req.file);
       req.body.picture = `${req.file.filename}`;
     }
     const user = await User.findById(req.user.id).select("shop_ref");
     req.body.shop_ref = req.shop_ref;
-    req.body.order_status = "Annulé";
 
     const updatedOrder = await Order.findByIdAndUpdate(
-      productId,
-      {
-        $unset: { user_ref: 1 }, // Remove the 'user_ref' field
-      },
+      orderId,
+      { $set: { order_status: "Annulé" }, $unset: { user_ref: 1 } },
       { new: true }
     );
 
