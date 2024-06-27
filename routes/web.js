@@ -11,12 +11,11 @@ const orderController = require("../controllers/orderController");
 const shopController = require("../controllers/shopController");
 
 const upload = require("../middleware/fileMiddleware");
-
 const authenticate = require("../middleware/authMiddleware");
 
 /////////////////////// VALIDATION IMPORTS ///////////////////////////
 const { check, body } = require("express-validator");
-const validations = require("../validations/validation");
+const validations = require("/home/ubuntu/skuadminpanel/validations/validation");
 
 const roleMiddleware = require("../middleware/roleMiddleware");
 ////////////////////// VALIDATION IMPORTS - END /////////////////////
